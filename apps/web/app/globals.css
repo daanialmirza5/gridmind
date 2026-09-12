@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: #0b0e13;
+  color: #d7dce2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0e13;
+}
+::-webkit-scrollbar-thumb {
+  background: #232a35;
+  border-radius: 6px;
+}
+
+.card {
+  background: #12161c;
+  border: 1px solid #232a35;
+  border-radius: 10px;
+}
+
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7c8794;
+}
+
+.severity-CRITICAL { color: #f87171; }
+.severity-HIGH { color: #fb923c; }
+.severity-MEDIUM { color: #facc15; }
+.severity-LOW { color: #60a5fa; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid currentColor;
+}
+
+.react-flow__attribution { display: none; }

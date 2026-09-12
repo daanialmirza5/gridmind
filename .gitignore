@@ -40,3 +40,8 @@ npm-debug.log*
 
 # Seed output (regeneratable, large)
 apps/api/seed/output/
+
+# Playwright
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
