@@ -9,9 +9,9 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 import bcrypt
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 
 from app.core.config import get_settings
 
@@ -60,7 +60,7 @@ def get_current_user(
         payload = jwt.decode(
             credentials.credentials, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
         )
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
     username = payload.get("sub")
     role = payload.get("role")

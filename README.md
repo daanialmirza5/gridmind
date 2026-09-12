@@ -269,6 +269,13 @@ ever returned to the client (`app/core/errors.py`).
 - Prompt-injection defenses on the AI layer (see above) with a passing regression test.
 - No secrets committed; `.env.example` documents every variable, `.gitignore` excludes
   `.env`, `*.db`, and `node_modules`.
+- JWT auth was moved from `python-jose` to `PyJWT` specifically to drop a transitive
+  `ecdsa`/`pyasn1` dependency chain that `pip-audit` flagged (the app only ever uses
+  HS256, so those packages — needed for asymmetric algorithms — were unused attack
+  surface). `pip-audit` is clean except for `starlette`, which is bumped to the newest
+  version FastAPI 0.128 supports (`<0.51.0`); the remaining flagged CVEs require a
+  starlette 1.x major bump that isn't compatible with that FastAPI release — a disclosed,
+  deferred risk rather than a silently ignored one.
 
 ## Limitations
 
@@ -307,6 +314,8 @@ Stated plainly, per the project's own "don't fake anything" principle:
   intervals) instead of the residual-std approximation.
 - Expand Playwright coverage to the remaining pages (assets, carbon, cost, alerts,
   settings, zone drill-down) beyond the 5 core demo-journey scenarios.
+- A coordinated FastAPI + Starlette major-version upgrade to clear the last `pip-audit`
+  findings (blocked today by FastAPI 0.128's `starlette<0.51.0` ceiling).
 
 ---
 
