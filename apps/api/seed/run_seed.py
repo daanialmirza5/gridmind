@@ -9,6 +9,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -18,6 +19,7 @@ from app.domain import structure as domain_structure  # noqa: E402
 from app.domain import energy as domain_energy  # noqa: E402
 from app.domain import system as domain_system  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
+from app.energy.ingestion import ingest_dataframe  # noqa: E402
 from seed.structure import build_structure  # noqa: E402
 from seed.timeseries import SCHEDULES, SyntheticEnergyGenerator  # noqa: E402
 
@@ -160,6 +162,39 @@ def bulk_load_timeseries(readings_df: pd.DataFrame, weather_df: pd.DataFrame, oc
     occupancy_df.to_sql("occupancy_records", con=engine, if_exists="append", index=False, chunksize=5000)
 
 
+def run_intelligence_pipeline(db, buildings):
+    from app.domain.intelligence import WasteEvent
+    from app.energy.baseline import compute_and_store_baselines
+    from app.energy.ledger import query_readings
+    from app.energy.waste import detect_waste_events, persist_waste_events
+    from app.ml.anomaly import detect_anomalies, persist_anomalies
+    from app.optimization.recommendations import generate_recommendations, persist_recommendations, prioritize
+
+    all_readings = query_readings(db)
+    n_buckets = compute_and_store_baselines(db, all_readings)
+    print(f"  baselines: {n_buckets} (meter, day-of-week, hour) buckets")
+
+    total_anomalies = 0
+    total_waste = 0
+    for b in buildings:
+        b_readings = query_readings(db, building_id=b.id)
+        anomalies = detect_anomalies(db, b_readings)
+        persist_anomalies(db, anomalies)
+        total_anomalies += len(anomalies)
+
+        waste = detect_waste_events(db, b_readings)
+        persist_waste_events(db, waste)
+        total_waste += len(waste)
+    print(f"  anomalies detected: {total_anomalies}")
+    print(f"  waste events detected: {total_waste}")
+
+    all_waste = db.query(WasteEvent).all()
+    drafts = generate_recommendations(all_waste)
+    scored = prioritize(drafts)
+    persist_recommendations(db, scored)
+    print(f"  recommendations generated: {len(scored)}")
+
+
 def main():
     print("GridMind synthetic data generation")
     print(f"Window: {START} -> {END} (hourly)")
@@ -186,8 +221,38 @@ def main():
     print(f"Generated {len(readings_df):,} meter readings across {readings_df['meter_id'].nunique()} meters")
     print(f"Injected {len(ground_truth)} ground-truth anomalies")
 
+    # Hold back a small slice of rows to simulate real-world dropouts (never received),
+    # producing genuine missing intervals rather than a hardcoded "data quality" number.
+    quality_rng = np.random.default_rng(7)
+    held_back_idx = quality_rng.choice(len(readings_df), size=int(len(readings_df) * 0.002), replace=False)
+    held_back_df = readings_df.iloc[held_back_idx].copy()
+    clean_df = readings_df.drop(index=held_back_idx).reset_index(drop=True)
+
     print("Bulk-loading time-series into database...")
-    bulk_load_timeseries(readings_df, weather_df, occupancy_df)
+    bulk_load_timeseries(clean_df, weather_df, occupancy_df)
+
+    print("Simulating a follow-up CSV import (partial backfill + dirty rows)...")
+    backfill_sample = held_back_df.sample(n=min(150, len(held_back_df)), random_state=7).copy()
+    duplicate_sample = clean_df.sample(n=20, random_state=7).copy()  # already in the ledger -> should dedup
+    negative_sample = clean_df.sample(n=15, random_state=8).copy()
+    negative_sample["energy_kwh"] = -negative_sample["energy_kwh"].abs()
+    unknown_meter_sample = clean_df.sample(n=10, random_state=9).copy()
+    unknown_meter_sample["meter_id"] = "MTR-9999"
+
+    dirty_import_df = pd.concat(
+        [backfill_sample, duplicate_sample, negative_sample, unknown_meter_sample], ignore_index=True
+    )[["meter_id", "timestamp", "energy_kwh", "power_kw", "temperature_c", "occupancy", "operating_state"]]
+
+    db = SessionLocal()
+    try:
+        ingestion_report = ingest_dataframe(db, dirty_import_df, source_label="csv_import_demo")
+    finally:
+        db.close()
+    print(
+        f"Ingestion demo: received={ingestion_report.rows_received} valid={ingestion_report.rows_valid} "
+        f"deduplicated={ingestion_report.rows_deduplicated} negative_rejected={ingestion_report.rows_negative_rejected} "
+        f"unknown_meter_rejected={ingestion_report.rows_rejected_unknown_meter}"
+    )
 
     out_dir = Path(__file__).resolve().parent / "output"
     out_dir.mkdir(exist_ok=True)
@@ -211,6 +276,13 @@ def main():
             indent=2,
         )
     print(f"Ground-truth anomaly list written to {gt_path}")
+
+    print("Running intelligence pipeline (baselines, anomalies, waste, recommendations)...")
+    db = SessionLocal()
+    try:
+        run_intelligence_pipeline(db, buildings)
+    finally:
+        db.close()
 
     n_buildings = len(buildings)
     n_zones = sum(len(f.zones) for b in buildings for f in b.floors)
