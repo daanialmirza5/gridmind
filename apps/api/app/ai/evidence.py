@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.domain.energy import EmissionFactor
 from app.domain.intelligence import Anomaly, Recommendation, WasteEvent
-from app.domain.structure import Building
 from app.energy.carbon import compute_emissions
 from app.energy.ledger import kpi_summary, query_readings
 

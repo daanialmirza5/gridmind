@@ -89,8 +89,6 @@ def list_assets(
 def get_asset_health(asset_id: str, db: Session = Depends(get_db), _: CurrentUser = Depends(get_current_user)):
     """Heuristic asset health indicator -- explicitly labeled as heuristic, not a trained
     predictive-maintenance model."""
-    import pandas as pd
-
     from app.energy.ledger import query_readings
 
     a = db.query(Asset).filter(Asset.id == asset_id).first()

@@ -239,7 +239,6 @@ class SyntheticEnergyGenerator:
 
         # After-hours HVAC: pick ~1 event per zone with ~35% probability, 2-4 hours after schedule end.
         if self.rng.random() < 0.35:
-            candidate_days = np.where(~operating_mask)[0]
             off_after_on = np.where(operating_mask[:-1] & ~operating_mask[1:])[0]
             if len(off_after_on) > 0:
                 pick = self.rng.integers(0, len(off_after_on))

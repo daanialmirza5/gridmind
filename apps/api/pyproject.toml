@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 120
+exclude = [".venv", "seed/output"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
