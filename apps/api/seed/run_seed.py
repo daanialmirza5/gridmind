@@ -194,6 +194,11 @@ def run_intelligence_pipeline(db, buildings):
     persist_recommendations(db, scored)
     print(f"  recommendations generated: {len(scored)}")
 
+    from app.energy.alerts import sync_notifications
+
+    n_notifications = sync_notifications(db)
+    print(f"  notifications created: {n_notifications}")
+
 
 def main():
     print("GridMind synthetic data generation")
