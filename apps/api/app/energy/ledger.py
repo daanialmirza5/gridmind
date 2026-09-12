@@ -7,6 +7,16 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
+def _sql_dt(value: datetime) -> str:
+    """Format a datetime to match how pandas' to_sql (via the SQLAlchemy DATETIME type)
+    stores timestamps -- always with a 6-digit microsecond suffix. Binding a plain Python
+    datetime through `text()` goes through sqlite3's default adapter instead, which omits
+    the suffix when microsecond == 0, so a raw `timestamp = :latest` (or `<=`) comparison
+    would silently match zero rows / drop the exact latest hour. Explicit string
+    formatting sidesteps that mismatch entirely."""
+    return value.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+
 def query_readings(
     db: Session,
     building_id: str | None = None,
@@ -28,10 +38,10 @@ def query_readings(
         params["meter_id"] = meter_id
     if start:
         clauses.append("timestamp >= :start")
-        params["start"] = start
+        params["start"] = _sql_dt(start)
     if end:
         clauses.append("timestamp < :end")
-        params["end"] = end
+        params["end"] = _sql_dt(end)
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     query = f"""
@@ -80,10 +90,10 @@ def kpi_summary(db: Session, building_id: str | None = None) -> dict:
 
     main_only_clause = "AND zone_id IS NULL" if building_id else ""
     params = {
-        "today_start": today_start,
-        "latest": latest,
-        "month_start": month_start,
-        "window_start": window_start,
+        "today_start": _sql_dt(today_start),
+        "latest": _sql_dt(latest),
+        "month_start": _sql_dt(month_start),
+        "window_start": _sql_dt(window_start),
     }
     if building_id:
         params["building_id"] = building_id

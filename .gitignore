@@ -45,3 +45,7 @@ apps/api/seed/output/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 
+
+# TypeScript build info
+*.tsbuildinfo
+

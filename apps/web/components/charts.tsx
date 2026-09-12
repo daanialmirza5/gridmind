@@ -8,6 +8,7 @@ import {
   Area,
   BarChart,
   Bar,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -57,7 +58,7 @@ export function ForecastChart({ points }: { points: ForecastPoint[] }) {
   }));
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data}>
+      <ComposedChart data={data}>
         <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="label" stroke={AXIS_COLOR} fontSize={11} tickLine={false} minTickGap={40} />
         <YAxis stroke={AXIS_COLOR} fontSize={11} tickLine={false} width={50} />
@@ -73,7 +74,7 @@ export function ForecastChart({ points }: { points: ForecastPoint[] }) {
           name="Forecast interval"
         />
         <Line type="monotone" dataKey="expected_kwh" stroke="#3fb6a8" strokeWidth={2} dot={false} name="Expected (kWh)" />
-      </AreaChart>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

@@ -27,6 +27,8 @@ export function DigitalTwinGraph({
         nodes={nodes}
         edges={edges}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.2}
         nodesDraggable={false}
         nodesConnectable={false}
         onNodeClick={(_, node) => onSelect(node.data.selection)}
