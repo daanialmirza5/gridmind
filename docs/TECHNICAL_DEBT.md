@@ -1,7 +1,6 @@
 # GridMind — Technical Debt & Architectural Audit
 
 **Repository**: `gridmind`  
-**Status**: Tier 1 Flagship (Passing tests)
 
 ## Prioritized Debt Items
 - **[P1 — High] WebSocket Telemetry Streaming**: Current UI polls API every 3s. Should implement native WebSocket pub/sub for sub-second telemetry updates.
